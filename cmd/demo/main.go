@@ -10,9 +10,9 @@ import (
 )
 
 func main() {
-	s := store.NewEmployeeStore()
-	es := service.NewEmployeeService(s)
-	eh := handler.NewEmployeeHandler(es)
-	r := remote.NewRouter(eh)
+	empStore := store.NewEmployeeStore()
+	empService := service.NewEmployeeService(empStore)
+	empHandler := handler.NewEmployeeHandler(empService)
+	r := remote.NewRouter(empHandler)
 	log.Fatal(http.ListenAndServe(":8888", r))
 }

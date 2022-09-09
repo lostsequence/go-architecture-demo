@@ -9,17 +9,23 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Employee struct {
-	Id     int     `json:"id"`
-	Name   string  `json:"name"`
-	Salary float32 `json:"salary"`
+type EmployeeService interface {
+	Get(id int) (*dto.EmployeeDTO, error)
+	IncreaseEmployeeSalary(id int) error
+	CreateEmployee(emp dto.EmployeeDTO) error
 }
 
-type Handler struct {
-	empStore []Employee
+type EmployeeHandler struct {
+	employeeService EmployeeService
 }
 
-func (h Handler) Get(w http.ResponseWriter, r *http.Request) {
+func NewEmployeeHandler(es EmployeeService) EmployeeHandler {
+	return EmployeeHandler{
+		employeeService: es,
+	}
+}
+
+func (eh EmployeeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idParam)
@@ -29,17 +35,13 @@ func (h Handler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	emp, err := eh.employeeService.Get(id)
+
 	if err != nil {
 		http.Error(w, "Failed to get employee", http.StatusInternalServerError)
 		return
 	}
 
-	var emp Employee
-	for _, e := range h.empStore {
-		if e.Id == id {
-			emp = e
-		}
-	}
 	empJson, err := json.Marshal(emp)
 
 	if err != nil {
@@ -52,7 +54,7 @@ func (h Handler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreateEmployee(w http.ResponseWriter, r *http.Request) {
+func (eh EmployeeHandler) CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	var emp dto.EmployeeDTO
 
 	err := json.NewDecoder(r.Body).Decode(&emp)
@@ -74,7 +76,7 @@ func CreateEmployee(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func IncreaseEmployeeSalary(w http.ResponseWriter, r *http.Request) {
+func (eh EmployeeHandler) IncreaseEmployeeSalary(w http.ResponseWriter, r *http.Request) {
 	var emp dto.EmployeeDTO
 
 	err := json.NewDecoder(r.Body).Decode(&emp)
@@ -84,8 +86,7 @@ func IncreaseEmployeeSalary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// логика increase salary
-	err = increaseEmployeeSalary(emp.Id)
+	err = eh.employeeService.IncreaseEmployeeSalary(emp.Id)
 
 	if err != nil {
 		http.Error(w, "Failed to increae employee salary", http.StatusInternalServerError)
